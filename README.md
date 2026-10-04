@@ -31,22 +31,33 @@
 
 ## 🛠️ Prerequisites
 
-1. **.NET 10 SDK** (version 10.0.401 or newer)  
-   Install via Windows Package Manager:
-   ```powershell
-   winget install Microsoft.DotNet.SDK.10
-   ```
-2. **ExifTool** (version 12.0+ or newer)  
-   Install via Windows Package Manager:
-   ```powershell
-   winget install OliverBetz.ExifTool
-   ```
+TakeoutEngine runs natively across **Windows, macOS (Apple Silicon & Intel), and Linux**.
+
+### Windows
+```powershell
+winget install Microsoft.DotNet.SDK.10
+winget install OliverBetz.ExifTool
+```
+
+### macOS (Homebrew)
+```bash
+brew install dotnet-sdk exiftool
+```
+
+### Linux (Ubuntu / Debian)
+```bash
+sudo apt update && sudo apt install -y libimage-exiftool-perl
+# Install .NET 10 SDK via Microsoft package repository or dotnet-install script
+```
+
+> **Tip:** You can also download standalone, self-contained single-file binaries directly from [GitHub Releases](https://github.com/aarnew-oss/takeoutengine/releases) without installing the .NET SDK!
 
 Verify both tools in your terminal:
-```powershell
+```bash
 dotnet --version
 exiftool -ver
 ```
+
 
 ---
 

@@ -117,11 +117,14 @@ public static partial class Program
         AnsiConsole.MarkupLine($"[green]✓ Found {zipCount} Takeout zip archive(s).[/]\n");
 
         // 2. Output directory
-        var defaultOutputDir = Path.Combine(inputDir.Root.FullName, "Organized_Photos");
+        var defaultOutputDir = OperatingSystem.IsWindows() && inputDir.Root != null
+            ? Path.Combine(inputDir.Root.FullName, "Organized_Photos")
+            : Path.Combine((inputDir.Parent ?? inputDir).FullName, "Organized_Photos");
         var outputPathStr = AnsiConsole.Prompt(
             new TextPrompt<string>("[bold green]Destination folder for organized library:[/]")
                 .DefaultValue(defaultOutputDir));
         var outputDir = new DirectoryInfo(outputPathStr.Trim('\"', '\''));
+
 
         // 3. Staging directory
         var defaultStagingDir = GetDefaultStagingDir(inputDir).FullName;
@@ -194,9 +197,13 @@ public static partial class Program
 
     private static DirectoryInfo GetDefaultStagingDir(DirectoryInfo inputDir)
     {
-        var root = inputDir.Root.FullName;
-        var stagingPath = Path.Combine(root, "takeout_staging");
-        return new DirectoryInfo(stagingPath);
+        if (OperatingSystem.IsWindows() && inputDir.Root != null)
+        {
+            var root = inputDir.Root.FullName;
+            return new DirectoryInfo(Path.Combine(root, "takeout_staging"));
+        }
+        var parent = inputDir.Parent ?? inputDir;
+        return new DirectoryInfo(Path.Combine(parent.FullName, "takeout_staging"));
     }
 
     private static string? GetAlbumName(FileInfo file)
@@ -970,15 +977,24 @@ public sealed class ExifToolWorker : IAsyncDisposable
 
     private static string ResolveExifToolPath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var candidates = new[]
+        var candidates = new List<string>();
+
+        if (OperatingSystem.IsWindows())
         {
-            Path.Combine(localAppData, @"Programs\ExifTool\exiftool.exe"),
-            @"C:\Program Files\ExifTool\exiftool.exe",
-            @"C:\Program Files (x86)\ExifTool\exiftool.exe",
-            @"C:\Windows\exiftool.exe",
-            "exiftool"
-        };
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            candidates.Add(Path.Combine(localAppData, @"Programs\ExifTool\exiftool.exe"));
+            candidates.Add(@"C:\Program Files\ExifTool\exiftool.exe");
+            candidates.Add(@"C:\Program Files (x86)\ExifTool\exiftool.exe");
+            candidates.Add(@"C:\Windows\exiftool.exe");
+        }
+        else
+        {
+            candidates.Add("/opt/homebrew/bin/exiftool");   // macOS Apple Silicon (Homebrew)
+            candidates.Add("/usr/local/bin/exiftool");      // macOS Intel (Homebrew) / Linux /usr/local
+            candidates.Add("/usr/bin/exiftool");            // Linux (apt, dnf, pacman)
+        }
+
+        candidates.Add("exiftool"); // PATH lookup fallback on all OS
 
         foreach (var candidate in candidates)
         {
