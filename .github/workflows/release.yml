@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Build & Release Single-File Executables
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Publish Windows x64 Single File
+      run: |
+        dotnet publish TakeoutEngine.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./dist/win-x64
+        Compress-Archive -Path ./dist/win-x64/* -DestinationPath ./dist/takeoutengine-win-x64.zip
+
+    - name: Publish Linux x64 Single File
+      run: |
+        dotnet publish TakeoutEngine.csproj -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o ./dist/linux-x64
+        tar -czf ./dist/takeoutengine-linux-x64.tar.gz -C ./dist/linux-x64 .
+
+    - name: Publish macOS ARM64 (Apple Silicon) Single File
+      run: |
+        dotnet publish TakeoutEngine.csproj -c Release -r osx-arm64 --self-contained -p:PublishSingleFile=true -o ./dist/osx-arm64
+        tar -czf ./dist/takeoutengine-osx-arm64.tar.gz -C ./dist/osx-arm64 .
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ./dist/takeoutengine-win-x64.zip
+          ./dist/takeoutengine-linux-x64.tar.gz
+          ./dist/takeoutengine-osx-arm64.tar.gz
+        draft: false
+        prerelease: false
+        generate_release_notes: true
